@@ -1,0 +1,39 @@
+name: Build dashboard
+
+# 대시보드는 자체 완결형 단일 파일이므로 저장소에 커밋하지 않고 Pages 로만 서빙한다.
+# Pages 는 public 저장소이거나 유료 플랜의 private 저장소여야 동작한다.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "recommended/**"
+      - "analysis/**"
+      - "site/dashboard.template.html"
+      - "tools/build_dashboard.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 병합이 연달아 들어와도 마지막 것만 배포하면 된다.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/build_dashboard.py --check && python3 tools/build_dashboard.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
